@@ -1,40 +1,47 @@
+
 /**
- * (c) Facebook, Inc. and its affiliates. Confidential and proprietary.
+ * Modules
  */
-
-//==============================================================================
-// Welcome to scripting in Spark AR Studio! Helpful links:
-//
-// Scripting Basics - https://fb.me/spark-scripting-basics
-// Reactive Programming - https://fb.me/spark-reactive-programming
-// Scripting Object Reference -     
-// Changelogs - https://fb.me/spark-changelog
-//==============================================================================
-
-// How to load in modules
 const Scene = require('Scene');
 const FaceTracking = require('FaceTracking');
-const Animation = require('Animation');
+const Patches = require('Patches');
 
+const root = Scene.root; // Just a shorthand
+const face = FaceTracking.face(0); // Track the first face that appear on the screen
 
-// Use export keyword to make a symbol available in scripting debug console
-export const Diagnostics = require('Diagnostics');
-const coralfish = Scene.root.find('coralfish')
-var driver = Animation.timeDriver({durationMilliseconds: 1000});
-var sampler = Animation.samplers.linear(3, -5);
-coralfish.transform.z = Animation.animate(driver, sampler);
-// driver.start();
-Diagnostics.watch("Mouth Openness - ", coralfish.transform.x.lastvalue);// To use variables and functions across files, use export/import keyword
-// export const animationDuration = 10;
+/**
+ * Points position of the mouth.
+ * Init now to use it later on
+ */
+const mouthPoint = {
+    leftX: face.mouth.leftCorner.x,
+    leftY: face.mouth.leftCorner.y,
+    righttX: face.mouth.rightCorner.x,
+    rightY: face.mouth.rightCorner.y,
+    topX: face.mouth.upperLipCenter.x,
+    topY: face.mouth.upperLipCenter.y,
+    bottomX: face.mouth.lowerLipCenter.x,
+    bottomY: face.mouth.lowerLipCenter.y
+  };
 
-// Use import keyword to import a symbol from another file
-// import { animationDuration } from './script.js'
+/**
+ * Subscribe to the mouth open event
+ */
+FaceTracking.face(0)
+  .mouth.openness.monitor()
+  .subscribe(function(event) {
+    if (event.newValue > 0.4) {
+      // When the mouth is open, we update the position of each corner and send it back to Spark AR.
+      Patches.setScalarValue('mouthleftXCorner', mouthPoint.leftX);
+      Patches.setScalarValue('mouthleftYCorner', mouthPoint.leftY);
 
-// To access scene objects
-// const directionalLight = Scene.root.find('directionalLight0');
+      Patches.setScalarValue('mouthRightXCorner', mouthPoint.righttX);
+      Patches.setScalarValue('mouthRightYCorner', mouthPoint.rightY);
 
-// To access class properties
-// const directionalLightIntensity = directionalLight.intensity;
+      Patches.setScalarValue('topLipsCenterX', mouthPoint.topX);
+      Patches.setScalarValue('topLipsCenterY', mouthPoint.topY);
 
-// To log messages to the console
-// Diagnostics.log('Console message logged from the script.');
+      Patches.setScalarValue('bottomLipsCenterX', mouthPoint.bottomX);
+      Patches.setScalarValue('bottomLipsCenterY', mouthPoint.bottomY);
+    }
+  });
